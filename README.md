@@ -43,11 +43,14 @@ metadata:
   name: sensu-go-sql-select-count-check
   namespace: default
 spec:
-  command: sensu-go-sql-select-count-check --dsn mysql://foo:bar@localhost:3306/test
+  command: >-
+    sensu-go-sql-select-count-check
+    --dburl mysql://foo:bar@localhost:3306/test
+    --query 'SELECT COUNT(*) FROM table WHERE type = ? AND state = ?;' -a sometype -a somestate
   subscriptions:
-  - system
+    - system
   runtime_assets:
-  - sardinasystems/sensu-go-sql-select-count-check
+    - sardinasystems/sensu-go-sql-select-count-check
 ```
 
 ## Installation from source
