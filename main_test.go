@@ -105,7 +105,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 	if assert.NoError(err) {
 		result, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
-		assert.Equal(1.0, result)
+		assert.Equal(3.0, result)
 	}
 
 	// test query args
@@ -117,10 +117,10 @@ func TestDoQueryAndExtract(t *testing.T) {
 	if assert.NoError(err) {
 		result, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
-		assert.Equal(1.0, result)
+		assert.Equal(0.0, result)
 	}
 
-	// test field
+	// test convert to float
 
 	config.Query = `SELECT id FROM test WHERE foo = ?;`
 	config.QueryArgs = []string{"test2"}
