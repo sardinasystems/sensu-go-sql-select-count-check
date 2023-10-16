@@ -92,11 +92,11 @@ func TestDoQueryAndExtract(t *testing.T) {
 	config.QueryArgs = []string{}
 
 	rows, err := config.DoQuery(db)
-	assert.NoError(err)
-
-	result, err := config.ExtractValueAndClose(rows)
-	assert.NoError(err)
-	assert.Equal(1.0, result)
+	if assert.NoError(err) {
+		result, err := config.ExtractValueAndClose(rows)
+		assert.NoError(err)
+		assert.Equal(1.0, result)
+	}
 
 	// test multiple rows
 
@@ -104,11 +104,11 @@ func TestDoQueryAndExtract(t *testing.T) {
 	exec(`INSERT INTO test (foo) VALUES ("test3");`)
 
 	rows, err = config.DoQuery(db)
-	assert.NoError(err)
-
-	result, err = config.ExtractValueAndClose(rows)
-	assert.NoError(err)
-	assert.Equal(1.0, result)
+	if assert.NoError(err) {
+		result, err := config.ExtractValueAndClose(rows)
+		assert.NoError(err)
+		assert.Equal(1.0, result)
+	}
 
 	// test query args
 
@@ -116,11 +116,35 @@ func TestDoQueryAndExtract(t *testing.T) {
 	config.QueryArgs = []string{"test0"}
 
 	rows, err = config.DoQuery(db)
-	assert.NoError(err)
+	if assert.NoError(err) {
+		result, err := config.ExtractValueAndClose(rows)
+		assert.NoError(err)
+		assert.Equal(1.0, result)
+	}
 
-	result, err = config.ExtractValueAndClose(rows)
-	assert.NoError(err)
-	assert.Equal(0.0, result)
+	// test field
+
+	config.Query = `SELECT id FROM test WHERE foo = ?;`
+	config.QueryArgs = []string{"test2"}
+
+	rows, err = config.DoQuery(db)
+	if assert.NoError(err) {
+		result, err := config.ExtractValueAndClose(rows)
+		assert.NoError(err)
+		assert.Equal(2.0, result)
+	}
+
+	// test multiple columns and rows
+
+	config.Query = `SELECT * FROM test;`
+	config.QueryArgs = []string{}
+
+	rows, err = config.DoQuery(db)
+	if assert.NoError(err) {
+		result, err := config.ExtractValueAndClose(rows)
+		assert.NoError(err)
+		assert.Equal(1.0, result)
+	}
 }
 
 func TestMain(t *testing.T) {
