@@ -12,7 +12,10 @@ func TestNewDB(t *testing.T) {
 		plugin      *Config
 		expectedErr error
 	}{
-		{"mysql-url", &Config{DBURL: "mysql://tester:testerpw@localhost:3306"}, nil},
+		{"mysql-url-ok", &Config{DBURL: "mysql://tester:testerpw@localhost:3306/test"}, nil},
+		{"mysql-args-ok", &Config{Driver: "mysql", User: "tester", Password: "testerpw", Host: "localhost", Port: 3306, Database: "test"}, nil},
+		{"mysql-url-no-pw", &Config{DBURL: "mysql://localhost:3306/test"}, nil},
+		{"mysql-args-no-pw", &Config{Driver: "mysql", Host: "localhost", Port: 3306, Database: "test"}, nil},
 	}
 
 	for _, tc := range testCases {
@@ -23,12 +26,16 @@ func TestNewDB(t *testing.T) {
 			if tc.expectedErr != nil {
 				assert.NoError(err)
 				assert.NotNil(db)
-				assert.NoError(db.Close())
+			} else {
+				assert.Nil(db)
+				assert.ErrorIs(err, tc.expectedErr)
 			}
 
+			if db != nil {
+				assert.NoError(db.Close())
+			}
 		})
 	}
-
 }
 
 func TestMain(t *testing.T) {
