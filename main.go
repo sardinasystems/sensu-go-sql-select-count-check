@@ -1,41 +1,194 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 
-	corev2 "github.com/sensu/sensu-go/api/core/v2"
+	corev2 "github.com/sensu/core/v2"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
+	"github.com/xo/dburl"
+
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+
+	"github.com/sardinasystems/sensu-go-prometheus-metric-check/utils"
 )
 
 // Config represents the check plugin config.
 type Config struct {
 	sensu.PluginConfig
-	Example string
+	DBURL             string
+	Driver            string
+	Host              string
+	Port              int
+	User              string
+	Password          string
+	Database          string
+	Query             string
+	QueryArgs         []string
+	WarningStr        string
+	CriticalStr       string
+	WarningThreshold  utils.NagiosThreshold
+	CriticalThreshold utils.NagiosThreshold
 }
 
 var (
+	allowedDrivers = []string{"mysql", "postgresql"}
+
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
-			Name:     "{{ .GithubProject }}",
-			Short:    "{{ .Description }}",
-			Keyspace: "sensu.io/plugins/{{ .GithubProject }}/config",
+			Name:     "sensu-go-sql-select-count-check",
+			Short:    "Query SQL DB and check for threashold",
+			Keyspace: "sensu.io/plugins/sensu-go-sql-select-count-check/config",
 		},
 	}
 
 	options = []sensu.ConfigOption{
 		&sensu.PluginConfigOption[string]{
-			Path:      "example",
-			Env:       "CHECK_EXAMPLE",
-			Argument:  "example",
-			Shorthand: "e",
+			Path:      "dburl",
+			Env:       "SQL_URL",
+			Argument:  "dburl",
+			Shorthand: "",
 			Default:   "",
-			Usage:     "An example string configuration option",
-			Value:     &plugin.Example,
+			Usage:     "DB URL",
+			Value:     &plugin.DBURL,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "driver",
+			Env:       "SQL_DRIVER",
+			Argument:  "driver",
+			Shorthand: "",
+			Default:   "mysql",
+			Usage:     "DB Driver",
+			Value:     &plugin.Driver,
+			Allow:     allowedDrivers,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "host",
+			Env:       "SQL_HOST",
+			Argument:  "host",
+			Shorthand: "H",
+			Default:   "",
+			Usage:     "DB Host",
+			Value:     &plugin.Host,
+		},
+
+		&sensu.PluginConfigOption[int]{
+			Path:      "port",
+			Env:       "SQL_PORT",
+			Argument:  "port",
+			Shorthand: "P",
+			Default:   0,
+			Usage:     "DB Port",
+			Value:     &plugin.Port,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "user",
+			Env:       "SQL_USER",
+			Argument:  "user",
+			Shorthand: "u",
+			Default:   "",
+			Usage:     "DB User",
+			Value:     &plugin.User,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "password",
+			Env:       "SQL_PASSWORD",
+			Argument:  "password",
+			Shorthand: "p",
+			Default:   "",
+			Usage:     "DB Password",
+			Value:     &plugin.Password,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "database",
+			Env:       "SQL_DATABASE",
+			Argument:  "database",
+			Shorthand: "d",
+			Default:   "",
+			Usage:     "Database name",
+			Value:     &plugin.Database,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "query",
+			Env:       "SQL_QUERY",
+			Argument:  "query",
+			Shorthand: "q",
+			Default:   "",
+			Usage:     "Query",
+			Value:     &plugin.Query,
+		},
+		&sensu.SlicePluginConfigOption[string]{
+			Path:      "query_args",
+			Env:       "SQL_QUERY_ARGS",
+			Argument:  "query-args",
+			Shorthand: "a",
+			Default:   []string{},
+			Usage:     "Optional query arguments passed to prepare statement",
+			Value:     &plugin.QueryArgs,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "warning",
+			Env:       "SQL_WARNING",
+			Argument:  "warning",
+			Shorthand: "w",
+			Default:   "",
+			Usage:     "Warning level",
+			Value:     &plugin.WarningStr,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "critical",
+			Env:       "SQL_CRITICAL",
+			Argument:  "critical",
+			Shorthand: "c",
+			Default:   "",
+			Usage:     "Critical level",
+			Value:     &plugin.CriticalStr,
 		},
 	}
 )
+
+func (s *Config) NewDB() (*sql.DB, error) {
+	var err error
+	var u *dburl.URL
+	var dsn string
+
+	if s.DBURL == "" {
+		u = &dburl.URL{}
+		u.Driver = s.Driver
+		u.Host = s.Host
+		if s.Port > 0 {
+			u.Host += fmt.Sprintf(":%d", s.Port)
+		}
+		if s.User != "" {
+			u.User = url.UserPassword(s.User, s.Password)
+		}
+		u.Path = s.Database
+
+		switch s.Driver {
+		case "mysql":
+			dsn, _, err = dburl.GenMysql(u)
+		case "postgresql":
+			dsn, _, err = dburl.GenPostgres(u)
+		default:
+			return nil, fmt.Errorf("unsupported driver: %s", s.Driver)
+		}
+	} else {
+		u, err = dburl.Parse(s.DBURL)
+		if u != nil {
+			s.Driver = u.Driver
+			dsn = u.DSN
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return sql.Open(s.Driver, dsn)
+}
 
 func main() {
 	useStdin := false
@@ -55,13 +208,22 @@ func main() {
 }
 
 func checkArgs(event *corev2.Event) (int, error) {
-	if len(plugin.Example) == 0 {
-		return sensu.CheckStateWarning, fmt.Errorf("--example or CHECK_EXAMPLE environment variable is required")
+	var err error
+
+	plugin.WarningThreshold, err = utils.ParseThreshold(plugin.WarningStr)
+	if err != nil {
+		return sensu.CheckStateCritical, fmt.Errorf("--warning error: %v", err)
 	}
+
+	plugin.CriticalThreshold, err = utils.ParseThreshold(plugin.CriticalStr)
+	if err != nil {
+		return sensu.CheckStateCritical, fmt.Errorf("--critical error: %v", err)
+	}
+
 	return sensu.CheckStateOK, nil
 }
 
 func executeCheck(event *corev2.Event) (int, error) {
-	log.Println("executing check with --example", plugin.Example)
+
 	return sensu.CheckStateOK, nil
 }
