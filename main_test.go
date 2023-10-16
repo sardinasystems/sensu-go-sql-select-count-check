@@ -57,7 +57,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	exec(`DROP TABLE test;`)
+	exec(`DROP TABLE IF EXISTS test;`)
 	exec(`CREATE TABLE test
 (
   id integer AUTO_INCREMENT NOT NULL,
