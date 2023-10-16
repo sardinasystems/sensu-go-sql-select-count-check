@@ -1,6 +1,6 @@
-module github.com/{{ .GithubUser }}/{{ .GithubProject }}
+module github.com/sardinasystems/sensu-go-sql-select-count-check
 
-go 1.18
+go 1.21
 
 require (
 	github.com/sensu/sensu-go/api/core/v2 v2.14.0
