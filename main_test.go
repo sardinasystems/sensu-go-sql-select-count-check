@@ -61,8 +61,6 @@ func TestDoQueryAndExtract(t *testing.T) {
 	initLogger(t)
 	assert := assert.New(t)
 
-	slog.Any
-
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
