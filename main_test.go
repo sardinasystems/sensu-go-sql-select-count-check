@@ -66,7 +66,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 
 	config := &Config{DBURL: "mysql://tester:testerpw@localhost:3306/test"}
 	db, err := config.NewDB()
-	assert.NoError(err)
+	require.NoError(t, err)
 	defer db.Close()
 
 	exec := func(stmt string) {

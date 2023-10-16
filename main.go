@@ -191,7 +191,7 @@ func (s *Config) NewDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	slog.With("driver", s.Driver, "dns", dsn).Debug("opening db...")
+	slog.With("driver", s.Driver, "dsn", dsn).Debug("opening db...")
 	return sql.Open(s.Driver, dsn)
 }
 
@@ -242,15 +242,20 @@ func (s *Config) ExtractValueAndClose(rows *sql.Rows) (result float64, err error
 			return 0, err
 		}
 
+		// NOTE: convert for slog
+		valuesStr := make([]string, len(valuesAny))
+		for i, v := range valuesAny {
+			valuesStr[i] = *(v.(*string))
+		}
+
 		if idx == 0 {
-			clg.With("values", valuesAny, "row", idx+1).Debug("First row")
-			valuePtr := valuesAny[0].(*string)
-			result, err = strconv.ParseFloat(*valuePtr, 64)
+			clg.With("values", valuesStr, "row", idx+1).Debug("First row")
+			result, err = strconv.ParseFloat(valuesStr[0], 64)
 			if err != nil {
 				return 0, err
 			}
 		} else {
-			clg.With("values", valuesAny, "row", idx+1).Warn("Query returned more than one row. Skipped")
+			clg.With("values", valuesStr, "row", idx+1).Warn("Query returned more than one row. Skipped")
 		}
 	}
 
