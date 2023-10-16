@@ -23,7 +23,7 @@ func TestNewDB(t *testing.T) {
 			assert := assert.New(t)
 
 			db, err := tc.plugin.NewDB()
-			if tc.expectedErr != nil {
+			if tc.expectedErr == nil {
 				assert.NoError(err)
 				assert.NotNil(db)
 			} else {
