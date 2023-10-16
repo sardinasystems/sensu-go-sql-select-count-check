@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewDB(t *testing.T) {
@@ -43,7 +44,7 @@ func TestNewDB(t *testing.T) {
 func TestDoQueryAndExtract(t *testing.T) {
 	assert := assert.New(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	config := &Config{DBURL: "mysql://tester:testerpw@localhost:3306/test"}
@@ -51,20 +52,20 @@ func TestDoQueryAndExtract(t *testing.T) {
 	assert.NoError(err)
 	defer db.Close()
 
-	_, err = db.ExecContext(ctx, `
-DROP TABLE test;
+	exec := func(stmt string) {
+		_, err := db.ExecContext(ctx, stmt)
+		require.NoError(t, err)
+	}
 
-CREATE TABLE test
+	exec(`DROP TABLE test;`)
+	exec(`CREATE TABLE test
 (
   id integer AUTO_INCREMENT NOT NULL,
   foo varchar(255) NOT NULL,
 
   PRIMARY KEY (id)
-);
-
-INSERT INTO test (foo) VALUES ("test1");
-`)
-	assert.NoError(err)
+);`)
+	exec(`INSERT INTO test (foo) VALUES ("test1");`)
 
 	// test single row
 
@@ -80,11 +81,8 @@ INSERT INTO test (foo) VALUES ("test1");
 
 	// test multiple rows
 
-	_, err = db.ExecContext(ctx, `
-INSERT INTO test (foo) VALUES ("test2");
-INSERT INTO test (foo) VALUES ("test3");
-`)
-	assert.NoError(err)
+	exec(`INSERT INTO test (foo) VALUES ("test2");`)
+	exec(`INSERT INTO test (foo) VALUES ("test3");`)
 
 	rows, err = config.DoQuery(db)
 	assert.NoError(err)
