@@ -89,7 +89,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 	config.Query = `SELECT COUNT(*) FROM test;`
 	config.QueryArgs = []string{}
 
-	rows, err := config.DoQuery(db)
+	rows, err := config.DoQuery(ctx, db)
 	if assert.NoError(err) {
 		result, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
@@ -101,7 +101,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 	exec(`INSERT INTO test (foo) VALUES ("test2");`)
 	exec(`INSERT INTO test (foo) VALUES ("test3");`)
 
-	rows, err = config.DoQuery(db)
+	rows, err = config.DoQuery(ctx, db)
 	if assert.NoError(err) {
 		result, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
@@ -113,7 +113,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 	config.Query = `SELECT COUNT(*) FROM test WHERE foo = ?;`
 	config.QueryArgs = []string{"test0"}
 
-	rows, err = config.DoQuery(db)
+	rows, err = config.DoQuery(ctx, db)
 	if assert.NoError(err) {
 		result, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
@@ -125,7 +125,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 	config.Query = `SELECT id FROM test WHERE foo = ?;`
 	config.QueryArgs = []string{"test2"}
 
-	rows, err = config.DoQuery(db)
+	rows, err = config.DoQuery(ctx, db)
 	if assert.NoError(err) {
 		result, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
@@ -137,7 +137,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 	config.Query = `SELECT * FROM test;`
 	config.QueryArgs = []string{}
 
-	rows, err = config.DoQuery(db)
+	rows, err = config.DoQuery(ctx, db)
 	if assert.NoError(err) {
 		result, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)

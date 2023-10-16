@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"time"
 
 	corev2 "github.com/sensu/core/v2"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
@@ -195,10 +194,7 @@ func (s *Config) NewDB() (*sql.DB, error) {
 	return sql.Open(s.Driver, dsn)
 }
 
-func (s *Config) DoQuery(db *sql.DB) (*sql.Rows, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
+func (s *Config) DoQuery(ctx context.Context, db *sql.DB) (*sql.Rows, error) {
 	stmt, err := db.PrepareContext(ctx, s.Query)
 	if err != nil {
 		return nil, err
@@ -248,14 +244,15 @@ func (s *Config) ExtractValueAndClose(rows *sql.Rows) (result float64, err error
 			valuesStr[i] = *(v.(*string))
 		}
 
+		cvlg := clg.With("values", valuesStr, "row", idx+1)
 		if idx == 0 {
-			clg.With("values", valuesStr, "row", idx+1).Debug("First row")
+			cvlg.Debug("First row")
 			result, err = strconv.ParseFloat(valuesStr[0], 64)
 			if err != nil {
 				return 0, err
 			}
 		} else {
-			clg.With("values", valuesStr, "row", idx+1).Warn("Query returned more than one row. Skipped")
+			cvlg.Warn("Query returned more than one row. Skipped")
 		}
 	}
 
