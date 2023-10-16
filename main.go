@@ -37,6 +37,8 @@ type Config struct {
 	CriticalStr       string
 	WarningThreshold  utils.NagiosThreshold
 	CriticalThreshold utils.NagiosThreshold
+	Unquote           bool
+	Debug             bool
 }
 
 var (
@@ -152,6 +154,24 @@ var (
 			Usage:     "Critical level",
 			Value:     &plugin.CriticalStr,
 		},
+		&sensu.PluginConfigOption[bool]{
+			Path:      "unquote",
+			Env:       "SQL_UNQUOTE",
+			Argument:  "unquote",
+			Shorthand: "j",
+			Default:   false,
+			Usage:     "Unquote string before parsing as float (useful for JSON fields)",
+			Value:     &plugin.Unquote,
+		},
+		&sensu.PluginConfigOption[bool]{
+			Path:      "debug",
+			Env:       "DEBUG",
+			Argument:  "debug",
+			Shorthand: "",
+			Default:   false,
+			Usage:     "Enable debug log",
+			Value:     &plugin.Debug,
+		},
 	}
 )
 
@@ -248,6 +268,15 @@ func (s *Config) ExtractValueAndClose(rows *sql.Rows) (result float64, err error
 		cvlg := clg.With("values", valuesStr, "row", idx+1)
 		if idx == 0 {
 			cvlg.Debug("First row")
+
+			if s.Unquote {
+				newStr, err := strconv.Unquote(valuesStr[0])
+				if err != nil {
+					return 0, err
+				}
+				valuesStr[0] = newStr
+			}
+
 			result, err = strconv.ParseFloat(valuesStr[0], 64)
 			if err != nil {
 				return 0, err
@@ -296,6 +325,16 @@ func checkArgs(event *corev2.Event) (int, error) {
 func executeCheck(event *corev2.Event) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	programLevel := new(slog.LevelVar)
+	if plugin.Debug {
+		programLevel.Set(slog.LevelDebug)
+	} else {
+		programLevel.Set(slog.LevelInfo)
+	}
+
+	lgh := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
+	slog.SetDefault(slog.New(lgh))
 
 	db, err := plugin.NewDB()
 	if err != nil {
