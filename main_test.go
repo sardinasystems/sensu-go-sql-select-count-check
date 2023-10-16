@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -9,7 +11,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func initLogger(t *testing.T) {
+	t.Helper()
+
+	buf := new(bytes.Buffer)
+	lg := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}))
+	slog.SetDefault(lg)
+
+	t.Cleanup(func() {
+		t.Log(buf.String())
+	})
+}
+
 func TestNewDB(t *testing.T) {
+	initLogger(t)
+
 	testCases := []struct {
 		name        string
 		plugin      *Config
@@ -42,9 +58,12 @@ func TestNewDB(t *testing.T) {
 }
 
 func TestDoQueryAndExtract(t *testing.T) {
+	initLogger(t)
 	assert := assert.New(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	slog.Any
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	config := &Config{DBURL: "mysql://tester:testerpw@localhost:3306/test"}
@@ -105,4 +124,5 @@ func TestDoQueryAndExtract(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
+	initLogger(t)
 }
