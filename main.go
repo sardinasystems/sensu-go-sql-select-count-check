@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"time"
 
 	corev2 "github.com/sensu/core/v2"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
@@ -293,6 +294,39 @@ func checkArgs(event *corev2.Event) (int, error) {
 }
 
 func executeCheck(event *corev2.Event) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	return sensu.CheckStateOK, nil
+	db, err := plugin.NewDB()
+	if err != nil {
+		return sensu.CheckStateUnknown, fmt.Errorf("open db error: %w", err)
+	}
+	defer db.Close()
+
+	rows, err := plugin.DoQuery(ctx, db)
+	if err != nil {
+		return sensu.CheckStateUnknown, fmt.Errorf("query error: %w", err)
+	}
+
+	value, err := plugin.ExtractValueAndClose(rows)
+	if err != nil {
+		return sensu.CheckStateUnknown, fmt.Errorf("read error: %w", err)
+	}
+
+	crit := plugin.CriticalThreshold.Check(value)
+	warn := plugin.WarningThreshold.Check(value)
+	state := sensu.CheckStateOK
+
+	if crit {
+		fmt.Printf("CRITICAL: result is %f which is out of %s", value, plugin.CriticalStr)
+		state = sensu.CheckStateCritical
+	} else if warn {
+		fmt.Printf("WARNING: result is %f which is out of %s", value, plugin.WarningStr)
+		state = sensu.CheckStateWarning
+	} else {
+		fmt.Printf("OK: result is %f", value)
+	}
+
+	fmt.Println()
+	return state, nil
 }
