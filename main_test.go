@@ -40,7 +40,7 @@ func TestNewDB(t *testing.T) {
 	}
 }
 
-func TestDoQuery(t *testing.T) {
+func TestDoQueryAndExtract(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -52,10 +52,9 @@ func TestDoQuery(t *testing.T) {
 	defer db.Close()
 
 	_, err = db.ExecContext(ctx, `
-
 DROP TABLE test;
 
-CTREATE TABLE test
+CREATE TABLE test
 (
   id integer AUTO_INCREMENT NOT NULL,
   foo varchar(255) NOT NULL,
@@ -64,9 +63,10 @@ CTREATE TABLE test
 );
 
 INSERT INTO test (foo) VALUES ("test1");
-
 `)
 	assert.NoError(err)
+
+	// test single row
 
 	config.Query = `SELECT COUNT(*) FROM test;`
 	config.QueryArgs = []string{}
@@ -74,7 +74,36 @@ INSERT INTO test (foo) VALUES ("test1");
 	rows, err := config.DoQuery(db)
 	assert.NoError(err)
 
-	_ = rows
+	result, err := config.ExtractValueAndClose(rows)
+	assert.NoError(err)
+	assert.Equal(1.0, result)
+
+	// test multiple rows
+
+	_, err = db.ExecContext(ctx, `
+INSERT INTO test (foo) VALUES ("test2");
+INSERT INTO test (foo) VALUES ("test3");
+`)
+	assert.NoError(err)
+
+	rows, err = config.DoQuery(db)
+	assert.NoError(err)
+
+	result, err = config.ExtractValueAndClose(rows)
+	assert.NoError(err)
+	assert.Equal(1.0, result)
+
+	// test query args
+
+	config.Query = `SELECT COUNT(*) FROM test WHERE foo = ?;`
+	config.QueryArgs = []string{"test0"}
+
+	rows, err = config.DoQuery(db)
+	assert.NoError(err)
+
+	result, err = config.ExtractValueAndClose(rows)
+	assert.NoError(err)
+	assert.Equal(0.0, result)
 }
 
 func TestMain(t *testing.T) {

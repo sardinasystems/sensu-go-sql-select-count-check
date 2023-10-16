@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	corev2 "github.com/sensu/core/v2"
@@ -208,6 +210,52 @@ func (s *Config) DoQuery(db *sql.DB) (*sql.Rows, error) {
 	}
 
 	return stmt.QueryContext(ctx, args...)
+}
+
+func (s *Config) ExtractValueAndClose(rows *sql.Rows) (result float64, err error) {
+	defer func() {
+		err = errors.Join(err, rows.Close())
+	}()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return 0, err
+	}
+
+	clg := slog.With("columns", columns)
+	if len(columns) == 0 {
+		return 0, fmt.Errorf("No columns returned")
+	} else if len(columns) > 1 {
+		clg.Warn("Expected to have only one column. First column will be used")
+	} else {
+		clg.Debug("Got column")
+	}
+
+	for idx := 0; rows.Next(); idx++ {
+		valuesAny := make([]any, len(columns))
+		for i := range valuesAny {
+			valuesAny[i] = new(string)
+		}
+
+		err = rows.Scan(valuesAny...)
+		if err != nil {
+			return 0, err
+		}
+
+		if idx == 0 {
+			clg.With("values", valuesAny, "row", idx+1).Debug("First row")
+			valuePtr := valuesAny[0].(*string)
+			result, err = strconv.ParseFloat(*valuePtr, 64)
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			clg.With("values", valuesAny, "row", idx+1).Warn("Query returned more than one row. Skipped")
+		}
+	}
+
+	err = rows.Err()
+	return
 }
 
 func main() {
