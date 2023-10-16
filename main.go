@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/url"
 	"os"
+	"time"
 
 	corev2 "github.com/sensu/core/v2"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
@@ -187,7 +189,25 @@ func (s *Config) NewDB() (*sql.DB, error) {
 		return nil, err
 	}
 
+	slog.With("driver", s.Driver, "dns", dsn).Debug("opening db...")
 	return sql.Open(s.Driver, dsn)
+}
+
+func (s *Config) DoQuery(db *sql.DB) (*sql.Rows, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	stmt, err := db.PrepareContext(ctx, s.Query)
+	if err != nil {
+		return nil, err
+	}
+
+	args := make([]any, len(s.QueryArgs))
+	for i, a := range s.QueryArgs {
+		args[i] = a
+	}
+
+	return stmt.QueryContext(ctx, args...)
 }
 
 func main() {
@@ -197,9 +217,8 @@ func main() {
 		fmt.Printf("Error check stdin: %v\n", err)
 		panic(err)
 	}
-	//Check the Mode bitmask for Named Pipe to indicate stdin is connected
+	// Check the Mode bitmask for Named Pipe to indicate stdin is connected
 	if fi.Mode()&os.ModeNamedPipe != 0 {
-		log.Println("using stdin")
 		useStdin = true
 	}
 

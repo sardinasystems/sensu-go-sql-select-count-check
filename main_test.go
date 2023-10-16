@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,6 +38,43 @@ func TestNewDB(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDoQuery(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	config := &Config{DBURL: "mysql://tester:testerpw@localhost:3306/test"}
+	db, err := config.NewDB()
+	assert.NoError(err)
+	defer db.Close()
+
+	_, err = db.ExecContext(ctx, `
+
+DROP TABLE test;
+
+CTREATE TABLE test
+(
+  id integer AUTO_INCREMENT NOT NULL,
+  foo varchar(255) NOT NULL,
+
+  PRIMARY KEY (id)
+);
+
+INSERT INTO test (foo) VALUES ("test1");
+
+`)
+	assert.NoError(err)
+
+	config.Query = `SELECT COUNT(*) FROM test;`
+	config.QueryArgs = []string{}
+
+	rows, err := config.DoQuery(db)
+	assert.NoError(err)
+
+	_ = rows
 }
 
 func TestMain(t *testing.T) {
