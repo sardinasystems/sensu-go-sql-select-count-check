@@ -229,24 +229,25 @@ func (s *Config) DoQuery(ctx context.Context, db *sql.DB) (*sql.Rows, error) {
 	return stmt.QueryContext(ctx, args...)
 }
 
-func (s *Config) ExtractValueAndClose(rows *sql.Rows) (result float64, err error) {
+func (s *Config) ExtractValueAndClose(rows *sql.Rows) (result float64, columnName string, err error) {
 	defer func() {
 		err = errors.Join(err, rows.Close())
 	}()
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
 	clg := slog.With("columns", columns)
 	if len(columns) == 0 {
-		return 0, fmt.Errorf("No columns returned")
+		return 0, "", fmt.Errorf("No columns returned")
 	} else if len(columns) > 1 {
 		clg.Warn("Expected to have only one column. First column will be used")
 	} else {
 		clg.Debug("Got column")
 	}
+	columnName = columns[0]
 
 	for idx := 0; rows.Next(); idx++ {
 		valuesAny := make([]any, len(columns))
@@ -256,7 +257,7 @@ func (s *Config) ExtractValueAndClose(rows *sql.Rows) (result float64, err error
 
 		err = rows.Scan(valuesAny...)
 		if err != nil {
-			return 0, err
+			return 0, "", err
 		}
 
 		// NOTE: convert for slog
@@ -272,14 +273,14 @@ func (s *Config) ExtractValueAndClose(rows *sql.Rows) (result float64, err error
 			if s.Unquote {
 				newStr, err := strconv.Unquote(valuesStr[0])
 				if err != nil {
-					return 0, err
+					return 0, "", err
 				}
 				valuesStr[0] = newStr
 			}
 
 			result, err = strconv.ParseFloat(valuesStr[0], 64)
 			if err != nil {
-				return 0, err
+				return 0, "", err
 			}
 		} else {
 			cvlg.Warn("Query returned more than one row. Skipped")
@@ -347,7 +348,7 @@ func executeCheck(event *corev2.Event) (int, error) {
 		return sensu.CheckStateUnknown, fmt.Errorf("query error: %w", err)
 	}
 
-	value, err := plugin.ExtractValueAndClose(rows)
+	value, columnName, err := plugin.ExtractValueAndClose(rows)
 	if err != nil {
 		return sensu.CheckStateUnknown, fmt.Errorf("read error: %w", err)
 	}
@@ -357,13 +358,13 @@ func executeCheck(event *corev2.Event) (int, error) {
 	state := sensu.CheckStateOK
 
 	if crit {
-		fmt.Printf("CRITICAL: result is %f which is out of %s", value, plugin.CriticalStr)
+		fmt.Printf("CRITICAL: %s is %f which is out of %s", columnName, value, plugin.CriticalStr)
 		state = sensu.CheckStateCritical
 	} else if warn {
-		fmt.Printf("WARNING: result is %f which is out of %s", value, plugin.WarningStr)
+		fmt.Printf("WARNING: %s is %f which is out of %s", columnName, value, plugin.WarningStr)
 		state = sensu.CheckStateWarning
 	} else {
-		fmt.Printf("OK: result is %f", value)
+		fmt.Printf("OK: %s is %f", columnName, value)
 	}
 
 	fmt.Println()

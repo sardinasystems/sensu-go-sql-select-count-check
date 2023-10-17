@@ -91,7 +91,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 
 	rows, err := config.DoQuery(ctx, db)
 	if assert.NoError(err) {
-		result, err := config.ExtractValueAndClose(rows)
+		result, _, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
 		assert.Equal(1.0, result)
 	}
@@ -103,7 +103,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 
 	rows, err = config.DoQuery(ctx, db)
 	if assert.NoError(err) {
-		result, err := config.ExtractValueAndClose(rows)
+		result, _, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
 		assert.Equal(3.0, result)
 	}
@@ -115,7 +115,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 
 	rows, err = config.DoQuery(ctx, db)
 	if assert.NoError(err) {
-		result, err := config.ExtractValueAndClose(rows)
+		result, _, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
 		assert.Equal(0.0, result)
 	}
@@ -127,7 +127,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 
 	rows, err = config.DoQuery(ctx, db)
 	if assert.NoError(err) {
-		result, err := config.ExtractValueAndClose(rows)
+		result, _, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
 		assert.Equal(2.0, result)
 	}
@@ -139,7 +139,7 @@ func TestDoQueryAndExtract(t *testing.T) {
 
 	rows, err = config.DoQuery(ctx, db)
 	if assert.NoError(err) {
-		result, err := config.ExtractValueAndClose(rows)
+		result, _, err := config.ExtractValueAndClose(rows)
 		assert.NoError(err)
 		assert.Equal(1.0, result)
 	}
