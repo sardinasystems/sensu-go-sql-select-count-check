@@ -6,7 +6,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/lib/pq v1.10.9
 	github.com/sardinasystems/sensu-go-prometheus-metric-check v0.0.0-20231019072836-5ffafe90b2e7
-	github.com/sensu/core/v2 v2.19.0
+	github.com/sensu/core/v2 v2.20.0
 	github.com/sensu/sensu-plugin-sdk v0.18.0
 	github.com/stretchr/testify v1.8.4
 	github.com/xo/dburl v0.18.2
