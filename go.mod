@@ -7,7 +7,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/sardinasystems/sensu-go-prometheus-metric-check v0.0.0-20240209104638-fd12cc4d1db3
 	github.com/sensu/core/v2 v2.20.0
-	github.com/sensu/sensu-plugin-sdk v0.18.0
+	github.com/sensu/sensu-plugin-sdk v0.19.0
 	github.com/stretchr/testify v1.8.4
 	github.com/xo/dburl v0.21.1
 )
