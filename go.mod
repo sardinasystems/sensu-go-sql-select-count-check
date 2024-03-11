@@ -3,7 +3,7 @@ module github.com/sardinasystems/sensu-go-sql-select-count-check
 go 1.21
 
 require (
-	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-sql-driver/mysql v1.8.0
 	github.com/lib/pq v1.10.9
 	github.com/sardinasystems/sensu-go-prometheus-metric-check v0.0.0-20240209104638-fd12cc4d1db3
 	github.com/sensu/core/v2 v2.20.0
@@ -13,6 +13,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
