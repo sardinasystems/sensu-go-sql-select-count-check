@@ -1,11 +1,11 @@
 module github.com/sardinasystems/sensu-go-sql-select-count-check
 
-go 1.21
+go 1.22
 
 require (
 	github.com/go-sql-driver/mysql v1.8.0
 	github.com/lib/pq v1.10.9
-	github.com/sardinasystems/sensu-go-prometheus-metric-check v0.0.0-20240304091101-043fd6270018
+	github.com/sardinasystems/sensu-go-prometheus-metric-check v0.0.0-20240312082842-a7e65c67f953
 	github.com/sensu/core/v2 v2.20.0
 	github.com/sensu/sensu-plugin-sdk v0.19.0
 	github.com/stretchr/testify v1.9.0
