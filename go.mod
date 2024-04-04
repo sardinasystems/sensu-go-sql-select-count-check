@@ -9,7 +9,7 @@ require (
 	github.com/sensu/core/v2 v2.20.0
 	github.com/sensu/sensu-plugin-sdk v0.19.0
 	github.com/stretchr/testify v1.9.0
-	github.com/xo/dburl v0.22.0
+	github.com/xo/dburl v0.23.0
 )
 
 require (
