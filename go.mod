@@ -2,8 +2,6 @@ module github.com/sardinasystems/sensu-go-sql-select-count-check
 
 go 1.22.7
 
-toolchain go1.23.1
-
 require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/lib/pq v1.10.9
