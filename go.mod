@@ -5,7 +5,7 @@ go 1.22.7
 require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/lib/pq v1.10.9
-	github.com/sardinasystems/sensu-go-prometheus-metric-check v0.0.0-20250205122817-8e000e473dcb
+	github.com/sardinasystems/sensu-go-check-common v0.0.0-20250205120347-ebe0a44b4bbb
 	github.com/sensu/core/v2 v2.20.0
 	github.com/sensu/sensu-plugin-sdk v0.19.0
 	github.com/stretchr/testify v1.10.0

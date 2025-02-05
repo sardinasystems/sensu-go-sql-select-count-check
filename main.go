@@ -11,14 +11,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sardinasystems/sensu-go-check-common/nagios"
 	corev2 "github.com/sensu/core/v2"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
 	"github.com/xo/dburl"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-
-	"github.com/sardinasystems/sensu-go-prometheus-metric-check/utils"
 )
 
 // Config represents the check plugin config.
@@ -33,10 +32,8 @@ type Config struct {
 	Database          string
 	Query             string
 	QueryArgs         []string
-	WarningStr        string
-	CriticalStr       string
-	WarningThreshold  utils.NagiosThreshold
-	CriticalThreshold utils.NagiosThreshold
+	WarningThreshold  nagios.Threshold
+	CriticalThreshold nagios.Threshold
 	Unquote           bool
 	Debug             bool
 }
@@ -136,23 +133,27 @@ var (
 			Usage:     "Optional query arguments passed to prepare statement",
 			Value:     &plugin.QueryArgs,
 		},
-		&sensu.PluginConfigOption[string]{
-			Path:      "warning",
-			Env:       "SQL_WARNING",
-			Argument:  "warning",
-			Shorthand: "w",
-			Default:   "",
-			Usage:     "Warning level",
-			Value:     &plugin.WarningStr,
+		&nagios.ThresholdConfigOption{
+			Option: sensu.PluginConfigOption[string]{
+				Path:      "warning",
+				Env:       "SQL_WARNING",
+				Argument:  "warning",
+				Shorthand: "w",
+				Default:   "",
+				Usage:     "Warning level",
+			},
+			Value: &plugin.WarningThreshold,
 		},
-		&sensu.PluginConfigOption[string]{
-			Path:      "critical",
-			Env:       "SQL_CRITICAL",
-			Argument:  "critical",
-			Shorthand: "c",
-			Default:   "",
-			Usage:     "Critical level",
-			Value:     &plugin.CriticalStr,
+		&nagios.ThresholdConfigOption{
+			Option: sensu.PluginConfigOption[string]{
+				Path:      "critical",
+				Env:       "SQL_CRITICAL",
+				Argument:  "critical",
+				Shorthand: "c",
+				Default:   "",
+				Usage:     "Critical level",
+			},
+			Value: &plugin.CriticalThreshold,
 		},
 		&sensu.PluginConfigOption[bool]{
 			Path:      "unquote",
@@ -308,18 +309,6 @@ func main() {
 }
 
 func checkArgs(event *corev2.Event) (int, error) {
-	var err error
-
-	plugin.WarningThreshold, err = utils.ParseThreshold(plugin.WarningStr)
-	if err != nil {
-		return sensu.CheckStateCritical, fmt.Errorf("--warning error: %v", err)
-	}
-
-	plugin.CriticalThreshold, err = utils.ParseThreshold(plugin.CriticalStr)
-	if err != nil {
-		return sensu.CheckStateCritical, fmt.Errorf("--critical error: %v", err)
-	}
-
 	return sensu.CheckStateOK, nil
 }
 
@@ -358,10 +347,10 @@ func executeCheck(event *corev2.Event) (int, error) {
 	state := sensu.CheckStateOK
 
 	if crit {
-		fmt.Printf("CRITICAL: %s is %f which is out of %s", columnName, value, plugin.CriticalStr)
+		fmt.Printf("CRITICAL: %s is %f which is out of %s", columnName, value, plugin.CriticalThreshold.String())
 		state = sensu.CheckStateCritical
 	} else if warn {
-		fmt.Printf("WARNING: %s is %f which is out of %s", columnName, value, plugin.WarningStr)
+		fmt.Printf("WARNING: %s is %f which is out of %s", columnName, value, plugin.WarningThreshold.String())
 		state = sensu.CheckStateWarning
 	} else {
 		fmt.Printf("OK: %s is %f", columnName, value)
