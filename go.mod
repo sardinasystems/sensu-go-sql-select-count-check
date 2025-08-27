@@ -8,7 +8,7 @@ require (
 	github.com/sardinasystems/sensu-go-check-common v0.0.0-20250217152407-6e3ef0ecdde1
 	github.com/sensu/core/v2 v2.20.0
 	github.com/sensu/sensu-plugin-sdk v0.19.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/xo/dburl v0.23.8
 )
 
